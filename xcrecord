@@ -1,0 +1,16 @@
+#!/bin/sh
+
+output=$1
+tmp_file=$(mktemp)
+
+if [ $# -eq 0 ]; then
+  echo "usage: $(basename "$0") file ..."
+  exit 1
+fi
+
+xcrun simctl io booted recordVideo "$tmp_file"
+
+ffmpeg -i "$tmp_file" -vf scale="w=-1:h=480:force_original_aspect_ratio=decrease" -pix_fmt rgb24 -r 10 -f gif - \
+  | gifsicle --optimize=3 > "$output"
+
+rm -r "$tmp_file"
