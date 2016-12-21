@@ -2,15 +2,34 @@
 
 output=$1
 tmp_file=$(mktemp)
+name=$(basename "$0")
 
-if [ $# -eq 0 ]; then
-  echo "usage: $(basename "$0") file ..."
-  exit 1
-fi
+show_usage() {
+  echo "usage: $name file ..."
+}
 
-xcrun simctl io booted recordVideo "$tmp_file"
+show_version() {
+  echo "$name version 1.0.0"
+}
 
-ffmpeg -i "$tmp_file" -vf scale="w=-1:h=480:force_original_aspect_ratio=decrease" -pix_fmt rgb24 -r 10 -f gif - \
-  | gifsicle --optimize=3 > "$output"
+xcrecord() {
+  xcrun simctl io booted recordVideo "$tmp_file"
 
-rm -r "$tmp_file"
+  ffmpeg -i "$tmp_file" -vf scale="w=-1:h=480:force_original_aspect_ratio=decrease" -pix_fmt rgb24 -r 10 -f gif - \
+    | gifsicle --optimize=3 > "$output"
+
+  rm -r "$tmp_file"
+}
+
+case $1 in
+  -v|--version|version)
+    show_version
+    exit
+    ;;
+  ?*)
+    xcrecord
+    ;;
+  *)
+    show_usage
+    ;;
+esac
