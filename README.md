@@ -12,5 +12,11 @@ brew install xcrecord
 # Usage
 
 ```sh
-xcrecord file
+xcrecord [OPTION] file
+
+OPTIONS
+
+-v --version
+  Prints the version number
+-
 ```
