@@ -1,10 +1,10 @@
 #!/bin/sh
 
-output=$1
 name=$(basename "$0")
 
 show_usage() {
-  echo "usage: $name file"
+  echo "Usage: $name [--version][--scale] <file>"
+  exit 1
 }
 
 show_version() {
@@ -17,7 +17,16 @@ xcrecord() {
 
   palette=$(mktemp "$TMPDIR$(uuidgen).png")
   paletteops="stats_mode=diff"
-  filters=fps=10,scale=-1:480:flags=lanczos
+  filters=fps=10
+
+  if [ -z "$scale" ]; then
+    scale="-1:480"
+  fi
+
+  if [ -z "$no_scale" ]; then
+    filters=$filters,scale="$scale":flags=lanczos
+  fi
+
   ffmpeg_destination="$(mktemp "$TMPDIR""$(uuidgen)".gif)"
 
   ffmpeg -loglevel quiet \
@@ -32,19 +41,61 @@ xcrecord() {
 
   gifsicle --optimize=3 --output "$output" "$ffmpeg_destination"
 
-  rm -r "$xcrun_destination" "$palette"
+  rm -r "$xcrun_destination" "$palette" "$ffmpeg_destination"
 }
 
-case $1 in
-  -v|--version|version)
-    show_version
-    exit
-    ;;
-  ?*)
-    xcrecord
+platform=$(uname | cut -d _ -f 1 | tr '[:upper:]' '[:lower:]')
+
+case "$platform" in
+  "darwin")
+    GETOPT="$(brew --prefix gnu-getopt 2>/dev/null || echo /usr/local)/bin/getopt"
     ;;
   *)
-    show_usage
-    exit 1
+    GETOPT="getopt"
     ;;
 esac
+
+if ! ARGS=$($GETOPT --long version,scale:,no-scale --options vs: -- "$@")
+then
+  show_usage
+fi
+
+eval set -- "$ARGS"
+while [ $# -gt 0 ]
+do
+  case "$1" in
+    -v|--version)
+      show_version
+      exit
+      ;;
+    -s|--scale)
+      scale=$2
+      shift 2
+      ;;
+    --no-scale)
+      no_scale=true
+      shift
+      ;;
+    --)
+      shift
+      break
+      ;;
+  esac
+done
+
+shift "$((OPTIND - 1))"
+
+while true ; do
+  case $1 in
+    ?*)
+      output=$1
+      shift
+      break
+      ;;
+    *)
+      show_usage
+      ;;
+  esac
+done
+
+xcrecord
