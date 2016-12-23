@@ -1,7 +1,6 @@
 #!/bin/sh
 
 output=$1
-tmp_file=$(mktemp)
 name=$(basename "$0")
 
 show_usage() {
@@ -13,12 +12,27 @@ show_version() {
 }
 
 xcrecord() {
-  xcrun simctl io booted recordVideo "$tmp_file"
+  xcrun_destination=$(mktemp)
+  xcrun simctl io booted recordVideo "$xcrun_destination"
 
-  ffmpeg -i "$tmp_file" -vf scale="w=-1:h=480:force_original_aspect_ratio=decrease" -pix_fmt rgb24 -r 10 -f gif - \
-    | gifsicle --optimize=3 > "$output"
+  palette=$(mktemp "$TMPDIR$(uuidgen).png")
+  paletteops="stats_mode=diff"
+  filters=fps=10,scale=-1:480:flags=lanczos
+  ffmpeg_destination="$(mktemp "$TMPDIR""$(uuidgen)".gif)"
 
-  rm -r "$tmp_file"
+  ffmpeg -loglevel quiet \
+    -i "$xcrun_destination" \
+    -vf "$filters,palettegen=$paletteops" \
+    -y "$palette"
+  ffmpeg -loglevel quiet \
+    -i "$xcrun_destination" \
+    -i "$palette" \
+    -filter_complex "$filters [x]; [x][1:v] paletteuse" \
+    -y "$ffmpeg_destination"
+
+  gifsicle --optimize=3 --output "$output" "$ffmpeg_destination"
+
+  rm -r "$xcrun_destination" "$palette"
 }
 
 case $1 in
