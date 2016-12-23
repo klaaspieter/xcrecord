@@ -5,7 +5,7 @@ tmp_file=$(mktemp)
 name=$(basename "$0")
 
 show_usage() {
-  echo "usage: $name file ..."
+  echo "usage: $name file"
 }
 
 show_version() {
