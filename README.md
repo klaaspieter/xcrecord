@@ -5,7 +5,7 @@ Capture GIFs from the iOS simulator 🎥
 # Install
 
 ```sh
-brew tap klaaspieter/formulae
+brew tap klaaspieter/homebrew-formula
 brew install xcrecord
 ```
 
